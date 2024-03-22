@@ -1,7 +1,24 @@
+"use client";
 import Image from "next/image";
 import styles from "./page.module.css";
+import { useEffect } from "react";
 
 export default function Home() {
+  useEffect(() => {
+    const worker = new Worker(new URL("/public/worker.ts", import.meta.url));
+
+    worker.postMessage("Hello from client");
+
+    worker.onmessage = (event) => {
+      const { data } = event;
+      console.log("클라이언트가 받음 : ", data);
+      // 웹 워커로부터 받은 데이터 처리
+    };
+
+    return () => {
+      worker.terminate();
+    };
+  }, []);
   return (
     <main className={styles.main}>
       <div className={styles.description}>

@@ -1,112 +1,44 @@
 "use client";
-import Image from "next/image";
+import useWebWorker from "@/hooks/useWorker";
+import { ChangeEvent, FormEvent, useState } from "react";
 import styles from "./page.module.css";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function Home() {
-  useEffect(() => {
-    const worker = new Worker(new URL("/public/worker.ts", import.meta.url));
+  const { workerRef, postMessageToWorker, terminateWorker } = useWebWorker();
+  const [files, setFiles] = useState<File[]>([]);
 
-    worker.postMessage("Hello from client");
+  const router = useRouter();
 
-    worker.onmessage = (event) => {
-      const { data } = event;
-      console.log("클라이언트가 받음 : ", data);
-      // 웹 워커로부터 받은 데이터 처리
-    };
+  const handleOnChangeFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      setFiles(Array.from(files));
+    }
+  };
 
-    return () => {
-      worker.terminate();
-    };
-  }, []);
+  const handleOnSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    postMessageToWorker({ action: "putObject", files: files });
+    if (workerRef.current) {
+      workerRef.current.onmessage = (e) => {
+        if (e.data === "done") {
+          console.log("done");
+          terminateWorker();
+        }
+      };
+    }
+  };
   return (
     <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
+      <Link href={"/goods"}>goods route</Link>
+      <form onSubmit={handleOnSubmit}>
+        {/* <input type="text" onChange={(e) => setTextx(e.target.value)} /> */}
+        <input type="file" multiple onChange={handleOnChangeFiles} />
+        <button type="submit">전송</button>
+      </form>
     </main>
   );
 }
